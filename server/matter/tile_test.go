@@ -47,7 +47,7 @@ func TestAtmosphereSanity(t *testing.T) {
 		Coord{0, 0}:   TileSpace(),
 		Coord{0, 100}: TileIndoor(),
 	}
-	b := a.Tick()
+	b, _ := a.Tick(nil)
 	atmosEquals("Two unrelated tiles", a, b, epsilon, t)
 
 	a = Atmosphere{
@@ -55,7 +55,7 @@ func TestAtmosphereSanity(t *testing.T) {
 		Coord{0, 1}: TileWall(),
 		Coord{0, 2}: TileIndoor(),
 	}
-	b = a.Tick()
+	b, _ = a.Tick(nil)
 	atmosEquals("Space, wall, floor", a, b, epsilon, t)
 
 	a = Atmosphere{
@@ -67,10 +67,9 @@ func TestAtmosphereSanity(t *testing.T) {
 		Temp: WaterFreezes,
 		Open: true,
 	}
-	b = a
+	a, b = nil, a
 	for i := 0; i < 100; i++ {
-		a = b
-		b = a.Tick()
+		b, a = b.Tick(a)
 	}
 	atmosEquals("Floor, cold floor, floor", a, b, epsilon, t)
 }
@@ -94,29 +93,32 @@ func makeBenchmark(size int64) Atmosphere {
 func BenchmarkAtmosphereTick3x3(b *testing.B) {
 	b.StopTimer()
 	a := makeBenchmark(3)
+	var c Atmosphere
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
-		a = a.Tick()
+		a, c = a.Tick(c)
 	}
 }
 
 func BenchmarkAtmosphereTick5x5(b *testing.B) {
 	b.StopTimer()
 	a := makeBenchmark(5)
+	var c Atmosphere
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
-		a = a.Tick()
+		a, c = a.Tick(c)
 	}
 }
 
 func BenchmarkAtmosphereTick15x15(b *testing.B) {
 	b.StopTimer()
 	a := makeBenchmark(15)
+	var c Atmosphere
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
-		a = a.Tick()
+		a, c = a.Tick(c)
 	}
 }

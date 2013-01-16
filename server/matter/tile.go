@@ -14,6 +14,8 @@ type Tile struct {
 	Gas  [gasCount]float64
 	Temp float64
 	Open bool
+
+	HeatTransfer float64
 }
 
 func TileIndoor() Tile {
@@ -22,21 +24,24 @@ func TileIndoor() Tile {
 			Oxygen:   TileContentsOxygen,
 			Nitrogen: TileContentsNitrogen,
 		},
-		Temp: RoomTemperature,
-		Open: true,
+		Temp:         RoomTemperature,
+		Open:         true,
+		HeatTransfer: 0.04,
 	}
 }
 
 func TileWall() Tile {
 	return Tile{
-		Temp: RoomTemperature,
+		Temp:         RoomTemperature,
+		HeatTransfer: 0.0005,
 	}
 }
 
 func TileSpace() Tile {
 	return Tile{
-		Temp: TempSpace,
-		Open: true,
+		Temp:         TempSpace,
+		Open:         true,
+		HeatTransfer: 0.4,
 	}
 }
 
@@ -58,15 +63,19 @@ func (t Tile) Total() float64 {
 
 type Atmosphere map[Coord]Tile
 
-func (orig Atmosphere) Tick() Atmosphere {
-	a := make(Atmosphere, len(orig))
+func (orig Atmosphere) Tick(other Atmosphere) (new, old Atmosphere) {
+	a := other
+	if a == nil {
+		a = make(Atmosphere, len(orig))
+	}
 	for c, t := range orig {
 		a[c] = t
 	}
 
 	share := func(c1, c2 Coord) {
-		t1, t2 := orig[c1], orig[c2]
-		if !t1.Open || !t2.Open {
+		t1, ok1 := orig[c1]
+		t2, ok2 := orig[c2]
+		if !ok1 || !ok2 {
 			return
 		}
 		n1, n2 := a[c1], a[c2]
@@ -74,24 +83,27 @@ func (orig Atmosphere) Tick() Atmosphere {
 		deltaTemp := t1.Temp - t2.Temp
 		heatTransfer := 0.0
 		h1, h2 := 0.0, 0.0
-		for g := range t1.Gas {
-			delta := (t1.Gas[g] - t2.Gas[g]) / 5
-			h := Gas(g).SpecificHeat()
-			h1 += t1.Gas[g] * h
-			h2 += t2.Gas[g] * h
-			if delta > 0 {
-				heatTransfer += h * delta * t1.Temp
-			} else {
-				heatTransfer += h * delta * t2.Temp
+		if t1.Open && t2.Open {
+			for g := range t1.Gas {
+				delta := (t1.Gas[g] - t2.Gas[g]) / 5
+				h := Gas(g).SpecificHeat()
+				h1 += t1.Gas[g] * h
+				h2 += t2.Gas[g] * h
+				if delta > 0 {
+					heatTransfer += h * delta * t1.Temp
+				} else {
+					heatTransfer += h * delta * t2.Temp
+				}
+				n1.Gas[g] -= delta
+				n2.Gas[g] += delta
 			}
-			n1.Gas[g] -= delta
-			n2.Gas[g] += delta
 		}
 		n1.Temp -= heatTransfer
 		n2.Temp += heatTransfer
-		if deltaTemp/10/heatTransfer > 1 {
-			n1.Temp += 0.4 * deltaTemp * h2 / (h1 + h2)
-			n2.Temp += 0.4 * deltaTemp * h1 / (h1 + h2)
+		if deltaTemp/10-heatTransfer > 0 {
+			ht := t1.HeatTransfer * t2.HeatTransfer
+			n1.Temp -= ht * deltaTemp * h2 / (h1 + h2)
+			n2.Temp += ht * deltaTemp * h1 / (h1 + h2)
 		}
 
 		a[c1], a[c2] = n1, n2
@@ -103,5 +115,5 @@ func (orig Atmosphere) Tick() Atmosphere {
 		share(c, c.Add(0, -1))
 		share(c, c.Add(0, 1))
 	}
-	return a
+	return a, orig
 }
