@@ -61,24 +61,69 @@ func (t Tile) Total() float64 {
 	return moles
 }
 
-type Atmosphere map[Coord]Tile
+type coordTile struct {
+	Coord
+	Tile
+}
+
+func coordLess(a, b Coord) bool {
+	if a.Y != b.Y {
+		return a.Y < b.Y
+	}
+	return a.X < b.X
+}
+
+type Atmosphere []coordTile
+
+func (a Atmosphere) coordIndex(c Coord) int {
+	// Define f(-1) == false and f(n) == true.
+	// Invariant: f(i-1) == false, f(j) == true.
+	i, j := 0, len(a)
+	for i < j {
+		h := i + (j-i)/2 // avoid overflow when computing h
+		// i ≤ h < j
+		if a[h].Coord != c && !coordLess(a[h].Coord, c) {
+			i = h + 1 // preserves f(i-1) == false
+		} else {
+			j = h // preserves f(j) == true
+		}
+	}
+	// i == j, f(i-1) == false, and f(j) (= f(i)) == true  =>  answer is i.
+	return i
+}
+
+func (a Atmosphere) Get(c Coord) *Tile {
+	i := a.coordIndex(c)
+	if i < len(a) && a[i].Coord == c {
+		return &a[i].Tile
+	}
+	return nil
+}
+
+func (a *Atmosphere) Set(c Coord, t Tile) {
+	i := a.coordIndex(c)
+	if i == len(*a) {
+		*a = append(*a, coordTile{c, t})
+		return
+	}
+	if (*a)[i].Coord == c {
+		(*a)[i].Tile = t
+		return
+	}
+	*a = append((*a)[:i+1], (*a)[i:]...)
+	(*a)[i] = coordTile{c, t}
+}
 
 func (orig Atmosphere) Tick(other Atmosphere) (new, old Atmosphere) {
-	a := other
-	if a == nil {
-		a = make(Atmosphere, len(orig))
+	if cap(other) < len(orig) {
+		other = make(Atmosphere, len(orig))
 	}
-	for c, t := range orig {
-		a[c] = t
-	}
+	other = other[:len(orig)]
+	copy(other, orig)
 
-	share := func(c1, c2 Coord) {
-		t1, ok1 := orig[c1]
-		t2, ok2 := orig[c2]
-		if !ok1 || !ok2 {
-			return
-		}
-		n1, n2 := a[c1], a[c2]
+	share := func(i, j int) {
+		t1, t2 := orig[i], orig[j]
+		n1, n2 := &other[i], &other[j]
 
 		deltaTemp := t1.Temp - t2.Temp
 		heatTransfer := 0.0
@@ -105,15 +150,20 @@ func (orig Atmosphere) Tick(other Atmosphere) (new, old Atmosphere) {
 			n1.Temp -= ht * deltaTemp * h2 / (h1 + h2)
 			n2.Temp += ht * deltaTemp * h1 / (h1 + h2)
 		}
-
-		a[c1], a[c2] = n1, n2
 	}
 
-	for c := range orig {
-		share(c, c.Add(-1, 0))
-		share(c, c.Add(1, 0))
-		share(c, c.Add(0, -1))
-		share(c, c.Add(0, 1))
+	maybeShare := func(left int, right Coord) {
+		i := orig.coordIndex(right)
+		if i < len(orig) && orig[i].Coord == right {
+			share(left, i)
+		}
 	}
-	return a, orig
+
+	for i := range orig {
+		maybeShare(i, orig[i].Coord.Add(-1, 0))
+		maybeShare(i, orig[i].Coord.Add(1, 0))
+		maybeShare(i, orig[i].Coord.Add(0, -1))
+		maybeShare(i, orig[i].Coord.Add(0, 1))
+	}
+	return other, orig
 }
