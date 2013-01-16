@@ -24,16 +24,16 @@ func atmosEquals(tag string, a, b Atmosphere, epsilon float64, t *testing.T) {
 	for c, t1 := range a {
 		if t2, ok := b[c]; ok {
 			if t1.Open != t2.Open {
-				t.Errorf("%q: open %b != %b", tag, t1.Open, t2.Open)
+				t.Errorf("%q: open %+v %b != %b", tag, c, t1.Open, t2.Open)
 			}
 			diff := t1.Temp - t2.Temp
 			if -epsilon > diff || diff > epsilon {
-				t.Errorf("%q: temp %v != %v", tag, t1.Temp, t2.Temp)
+				t.Errorf("%q: temp %+v %v != %v", tag, c, t1.Temp, t2.Temp)
 			}
 			for g := range t1.Gas {
 				diff := t1.Gas[g] - t2.Gas[g]
 				if -epsilon > diff || diff > epsilon {
-					t.Errorf("%q: %s %v != %v", tag, g, t1.Gas[g], t2.Gas[g])
+					t.Errorf("%q: %s %+v %v != %v", tag, Gas(g), c, t1.Gas[g], t2.Gas[g])
 				}
 			}
 		}
@@ -68,7 +68,7 @@ func TestAtmosphereSanity(t *testing.T) {
 		Open: true,
 	}
 	b = a
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 100; i++ {
 		a = b
 		b = a.Tick()
 	}

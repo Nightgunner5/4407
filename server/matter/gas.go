@@ -17,6 +17,18 @@ const (
 	gasCount
 )
 
+func (g Gas) SpecificHeat() float64 {
+	switch g {
+	case Oxygen, Nitrogen, NitrousOxide:
+		return 20
+	case CarbonDioxide:
+		return 30
+	case Plasma:
+		return 200
+	}
+	return 5
+}
+
 func (g Gas) GoString() string {
 	switch g {
 	case Oxygen:
