@@ -152,16 +152,12 @@ func (orig Atmosphere) Tick(other Atmosphere) (new, old Atmosphere) {
 			hcd1, hcd2 := 0.0, 0.0
 			for g := range t1.Gas {
 				h := Gas(g).SpecificHeat()
-				if math.IsNaN(h) || math.IsInf(h, 0) {
-					panic("NaN")
-				}
+
 				hct1 += n1.Gas[g] * h
 				hct2 += n2.Gas[g] * h
 
 				delta := (t1.Gas[g] - t2.Gas[g]) / 8
-				if math.IsNaN(delta) || math.IsInf(delta, 0) {
-					panic("NaN")
-				}
+
 				if (-0.0001 < delta && delta < 0.0001) || (t1.Gas[g] < 0.001 && t2.Gas[g] < 0.001) {
 					hcn1 += n1.Gas[g] * h
 					hcn2 += n2.Gas[g] * h
@@ -175,71 +171,24 @@ func (orig Atmosphere) Tick(other Atmosphere) (new, old Atmosphere) {
 				hcn2 += n2.Gas[g] * h
 
 				if delta > 0 {
-					if math.IsNaN(t1.Temp) || math.IsInf(t1.Temp, 0) {
-						panic("NaN")
-					}
 					ht1 += h * delta * deltaTemp
 					hcd1 += h * delta
 				} else {
-					if math.IsNaN(t2.Temp) || math.IsInf(t2.Temp, 0) {
-						panic("NaN")
-					}
 					ht2 -= h * delta * deltaTemp
 					hcd2 -= h * delta
 				}
 			}
-			if math.IsNaN(hcn1) {
-				panic("NaN")
-			}
-			if math.IsNaN(hcn2) {
-				panic("NaN")
-			}
-			if math.IsNaN(hct1) {
-				panic("NaN")
-			}
-			if math.IsNaN(hct2) {
-				panic("NaN")
-			}
-			if math.IsNaN(hcd1) {
-				panic("NaN")
-			}
-			if math.IsNaN(hcd2) {
-				panic("NaN")
-			}
-			if math.IsNaN(ht1) {
-				panic("NaN")
-			}
-			if math.IsNaN(ht2) {
-				panic("NaN")
-			}
+
 			if hcn1 > 0.05 && hcn2 > 0.05 && (hcd1 > 0.0001 || hcd2 > 0.0001) {
 				n1.Temp = (hct1*n1.Temp - hcd1*t1.Temp + hcd2*t2.Temp - ht1 + ht2) / hcn1
-				if math.IsNaN(n1.Temp) || n1.Temp <= 0 {
-					fmt.Println("(", hct1, "*", n1.Temp, "-", hcd1, "*", t1.Temp, "+", hcd2, "*", t2.Temp, "-", ht1, "+", ht2, ") /", hcn1)
-					panic("NaN")
-				}
 				n2.Temp = (hct2*n2.Temp + hcd1*t1.Temp - hcd2*t2.Temp + ht1 - ht2) / hcn2
-				if math.IsNaN(n2.Temp) || n2.Temp <= 0 {
-					fmt.Println("(", hct2, "*", n2.Temp, "+", hcd1, "*", t1.Temp, "-", hcd2, "*", t2.Temp, "+", ht1, "-", ht2, ") /", hcn2)
-					panic("NaN")
-				}
 			}
+
 			if hct1 > 0.0003 && hct2 > 0.0003 && hct2 > hcn2*0.9 && hct2 < hcn2*1.1 {
 				heat := t1.HeatTransfer * t2.HeatTransfer * deltaTemp / (hct1 + hct2)
-				if math.IsNaN(heat) {
-					panic("NaN")
-				}
 
 				n1.Temp -= heat * hct2
-				if math.IsNaN(n1.Temp) || n1.Temp <= 0 {
-					fmt.Println(heat, "*", hct2)
-					panic("NaN")
-				}
 				n2.Temp += heat * hct1
-				if math.IsNaN(n2.Temp) || n2.Temp <= 0 {
-					fmt.Println(heat, "*", hct1)
-					panic("NaN")
-				}
 			}
 		}
 	}
