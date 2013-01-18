@@ -5,13 +5,20 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/gob"
+	"fmt"
 	"github.com/Nightgunner5/4407/server/matter"
 	"io"
 	"os"
 	"strings"
 )
 
-func parseInstance(b []byte, current matter.LayoutTile) matter.LayoutTile {
+func parseInstance(b []byte, current matter.LayoutTile) (ret matter.LayoutTile) {
+	defer func() {
+		if current > ret {
+			ret = current
+		}
+	}()
+
 	if i := bytes.IndexByte(b, '{'); i != -1 {
 		b = b[:i]
 	}
@@ -34,6 +41,7 @@ func parseInstance(b []byte, current matter.LayoutTile) matter.LayoutTile {
 	case strings.HasPrefix(path, "/area"),
 		strings.HasPrefix(path, "/mob"),
 		strings.HasPrefix(path, "/obj"):
+		fmt.Println(path)
 		return current
 	default:
 		panic(path)
@@ -138,7 +146,7 @@ func main() {
 	defer f.Close()
 	m := Parse(f)
 
-	m.Compile(64)
+	m.Compile(0)
 
 	f, _ = os.Create("../server/map.gz")
 	defer f.Close()

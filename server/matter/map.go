@@ -54,7 +54,7 @@ func (m Map) Compile(padding int64) {
 type Level struct {
 	Layout Layout
 
-	Atmos Atmosphere
+	Atmos    Atmosphere
 	Min, Max Coord
 }
 

@@ -8,6 +8,7 @@ import (
 	"image"
 	"image/color"
 	"image/png"
+	"image/draw"
 	"io"
 	"os"
 	"runtime/pprof"
@@ -36,27 +37,44 @@ func main() {
 		panic(err)
 	}
 
+	const (
+		tileMax = 4
+	)
+	var tileicon [tileMax]image.Image
+	for i := range tileicon {
+		f, err := os.Open(fmt.Sprintf("tile-%d.png", i))
+		if err != nil {
+			panic(err)
+		}
+
+		tileicon[i], err = png.Decode(f)
+		f.Close()
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	f, _ = os.Create("cpu.prof")
 	defer f.Close()
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
 
-	var atmosBuf matter.Atmosphere
-	img := image.NewNRGBA(image.Rect(int(m[0].Min.X), int(m[0].Min.Y), int(m[0].Max.X), int(m[0].Max.Y)))
+	img := image.NewRGBA(image.Rect(int(m[0].Min.X)<<2, int(m[0].Min.Y)<<2, int(m[0].Max.X)<<2, int(m[0].Max.Y)<<2))
 	const (
-		tempMax  = 300
-		oxyMax   = 25
-		nitroMax = 85
-		airMax   = 110
+		tempMax = 300
+		airMax  = 110
 	)
-	for i := 0; i < 2000; i++ {
+	for i := 0; i < 10000; i++ {
 		for _, t := range m[0].Atmos {
-			img.SetNRGBA(int(t.X), int(t.Y), color.NRGBA{
-				uint8(t.Temp / tempMax * (t.Total() + 5) / airMax * 255),
-				uint8(t.Gas[matter.Oxygen] / oxyMax * 255),
-				uint8(t.Gas[matter.Nitrogen] / nitroMax * 255),
-				255,
+			r := image.Rect(int(t.X<<2), int(t.Y<<2), int(t.X<<2) + 4, int(t.Y<<2) + 4)
+			draw.Draw(img, r, tileicon[m[0].Layout[t.Coord]], image.ZP, draw.Src)
+			overlay := image.NewUniform(color.NRGBA{
+				uint8(t.Temp * 255 / tempMax),
+				uint8(t.Total() * 255 / airMax),
+				0,
+				uint8((t.Total() + 5) * 200 / airMax),
 			})
+			draw.Draw(img, r, overlay, image.ZP, draw.Over)
 		}
 
 		f, err := os.Create(fmt.Sprintf("atmos-%04d.png", i))
@@ -72,6 +90,6 @@ func main() {
 
 		fmt.Println(i)
 
-		m[0].Atmos, atmosBuf = m[0].Atmos.Tick(atmosBuf)
+		m[0].Atmos.Tick()
 	}
 }

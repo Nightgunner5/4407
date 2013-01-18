@@ -17,16 +17,21 @@ const (
 	gasCount
 )
 
+// Specific heat capacity in joules per kelvin
 func (g Gas) SpecificHeat() float64 {
 	switch g {
-	case Oxygen, Nitrogen, NitrousOxide:
-		return 20
+	case Oxygen:
+		return 29.4 // http://www.wolframalpha.com/input/?i=specific+heat+capacity+of+1+mol+of+oxygen
+	case Nitrogen:
+		return 29.1 // http://www.wolframalpha.com/input/?i=specific+heat+capacity+of+1+mol+of+nitrogen
+	case NitrousOxide:
+		return 38.6 // http://www.wolframalpha.com/input/?i=specific+heat+capacity+of+1+mol+of+nitrous+oxide
 	case CarbonDioxide:
-		return 30
+		return 37.1 // http://www.wolframalpha.com/input/?i=specific+heat+capacity+of+1+mol+of+carbon+dioxide
 	case Plasma:
-		return 200
+		return 2000
 	}
-	return 5
+	panic(g)
 }
 
 func (g Gas) GoString() string {
@@ -68,11 +73,13 @@ const (
 	RoomTemperature = Temp0C + 20
 	WaterBoils      = Temp0C + 100
 
-	R          = 8.3145  // joules per mole Δkelvin (PV = nRT)
+	R          = 8.3145  // joules per mole kelvin (PV = nRT)
 	ATM        = 101.325 // joules per liter (one atmosphere)
 	TileVolume = 2500    // liters
 
 	TileContentsTotal    = TileVolume * ATM / (RoomTemperature * R) // moles (2.5 cubic meters at standard pressure and room temperature)
 	TileContentsOxygen   = 0.21 * TileContentsTotal
 	TileContentsNitrogen = 0.79 * TileContentsTotal
+
+	GasMoveFraction = 0.2
 )

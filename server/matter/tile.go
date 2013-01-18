@@ -21,40 +21,55 @@ type Tile struct {
 	Open         bool
 	Space        bool
 	HeatTransfer float64
+	HeatCapacity float64
 }
 
 func TileIndoor() Tile {
 	return Tile{
 		Gas: [gasCount]float64{
+			0:        100,
 			Oxygen:   TileContentsOxygen,
 			Nitrogen: TileContentsNitrogen,
 		},
 		Temp:         RoomTemperature,
 		Open:         true,
 		HeatTransfer: 0.04,
+		HeatCapacity: 225000,
 	}
 }
 
 func TileWall() Tile {
 	return Tile{
+		Gas: [gasCount]float64{
+			0: 100,
+		},
 		Temp:         RoomTemperature,
 		HeatTransfer: 0.0005,
+		HeatCapacity: 312500, //a little over 5 cm thick , 312500 for 1 m by 2.5 m by 0.25 m steel wall
 	}
 }
 
 func TileWindow() Tile {
 	return Tile{
+		Gas: [gasCount]float64{
+			0: 100,
+		},
 		Temp:         RoomTemperature,
 		HeatTransfer: 0.03,
+		HeatCapacity: 250000,
 	}
 }
 
 func TileSpace() Tile {
 	return Tile{
+		Gas: [gasCount]float64{
+			0: 100,
+		},
 		Temp:         TempSpace,
 		Open:         true,
 		Space:        true,
 		HeatTransfer: 0.4,
+		HeatCapacity: 700000,
 	}
 }
 
@@ -67,20 +82,22 @@ func (t Tile) Pressure() float64 {
 func (t Tile) Total() float64 {
 	moles := 0.0
 
-	for _, g := range t.Gas {
-		moles += g
+	for i, g := range t.Gas {
+		if i != 0 {
+			moles += g
+		}
 	}
 
 	return moles
 }
 
 func (t Tile) check() bool {
-	if math.IsNaN(t.Temp) {
+	if math.IsNaN(t.Temp) || t.Temp <= 0 || t.Temp > 10000 {
 		return false
 	}
 
 	for g := range t.Gas {
-		if math.IsNaN(t.Gas[g]) || t.Gas[g] < 0 || (g == 0 && t.Gas[g] != 0) {
+		if math.IsNaN(t.Gas[g]) || t.Gas[g] < 0 || (g == 0 && t.Gas[g] != 100) {
 			return false
 		}
 	}
@@ -141,88 +158,76 @@ func (a *Atmosphere) Set(c Coord, t Tile) {
 	(*a)[i] = coordTile{c, t}
 }
 
-func (orig Atmosphere) Tick(other Atmosphere) (new, old Atmosphere) {
-	if cap(other) < len(orig) {
-		other = make(Atmosphere, len(orig))
+func (a Atmosphere) Tick() {
+	share := func(t1, t2 *coordTile) {
+		t1.Temp -= 2.7
+		t2.Temp -= 2.7
+
+		lc, rc := t1.HeatCapacity, t2.HeatCapacity // ending capacity
+		ls, rs := lc*t1.Temp, rc*t2.Temp           // starting heat
+		lt, rt := 0.0, 0.0                         // heat transferred
+
+		for g := Gas(1); g < gasCount; g++ {
+			l, r := t1.Gas[g]*GasMoveFraction, t2.Gas[g]*GasMoveFraction
+
+			if !t1.Open || !t2.Open {
+				l, r = 0, 0
+			}
+
+			ls += g.SpecificHeat() * t1.Gas[g] * t1.Temp
+			rs += g.SpecificHeat() * t2.Gas[g] * t2.Temp
+
+			t1.Gas[g] += r - l
+			t2.Gas[g] += l - r
+
+			lt += g.SpecificHeat() * l * (t1.Temp - t2.Temp)
+			rt += g.SpecificHeat() * r * (t2.Temp - t1.Temp)
+
+			lc += g.SpecificHeat() * t1.Gas[g]
+			rc += g.SpecificHeat() * t2.Gas[g]
+		}
+
+		lt *= t1.HeatTransfer
+		rt *= t2.HeatTransfer
+
+		if lc > 0.001 && rc > 0.001 {
+			ls += rt - lt
+			t1.Temp = ls / lc
+			rs += lt - rt
+			t2.Temp = rs / rc
+		}
+
+		if dt, dh := ls/lc-rs/rc, ls-rs; math.Abs(dt) > 5 {
+			if dh > 0 {
+				dh *= t1.HeatTransfer
+			} else {
+				dh *= t2.HeatTransfer
+			}
+
+			t1.Temp -= dh / lc
+			t2.Temp += dh / rc
+		}
+
+		t1.Temp += 2.7
+		t2.Temp += 2.7
 	}
-	other = other[:len(orig)]
-	copy(other, orig)
 
-	share := func(i, j int) {
-		t1, t2 := orig[i], orig[j]
-		n1, n2 := &other[i], &other[j]
-
-		deltaTemp := t1.Temp - t2.Temp
-		if n1.Open && n2.Open && (math.Abs(deltaTemp) > 0.001 || math.Abs(n1.Pressure()-n2.Pressure()) > 0.01) {
-			ht1, ht2 := 0.0, 0.0
-			hct1, hct2 := 0.0, 0.0
-			hcn1, hcn2 := 0.0, 0.0
-			hcd1, hcd2 := 0.0, 0.0
-			for g := range t1.Gas {
-				h := Gas(g).SpecificHeat()
-
-				hct1 += n1.Gas[g] * h
-				hct2 += n2.Gas[g] * h
-
-				delta := (n1.Gas[g] - n2.Gas[g]) / 5
-
-				if (-0.0001 < delta && delta < 0.0001) || (t1.Gas[g] < 0.001 && t2.Gas[g] < 0.001) {
-					hcn1 += n1.Gas[g] * h
-					hcn2 += n2.Gas[g] * h
-					continue
-				}
-
-				n1.Gas[g] -= delta
-				n2.Gas[g] += delta
-
-				hcn1 += n1.Gas[g] * h
-				hcn2 += n2.Gas[g] * h
-
-				if delta > 0 {
-					ht1 += h * delta * deltaTemp
-					hcd1 += h * delta
-				} else {
-					ht2 -= h * delta * deltaTemp
-					hcd2 -= h * delta
-				}
-			}
-
-			if hcn1 > 0.05 && hcn2 > 0.05 && (hcd1 > 0.0001 || hcd2 > 0.0001) {
-				n1.Temp = (hct1*n1.Temp - hcd1*t1.Temp + hcd2*t2.Temp - ht1 + ht2) / hcn1
-				n2.Temp = (hct2*n2.Temp + hcd1*t1.Temp - hcd2*t2.Temp + ht1 - ht2) / hcn2
-			}
-
-			if hct1 + hct2 > 0.001 && hct2 > hcn2*0.9 && hct2 < hcn2*1.1 {
-				heat := t1.HeatTransfer * t2.HeatTransfer * deltaTemp / (hct1 + hct2)
-
-				n1.Temp -= heat * hct2
-				n2.Temp += heat * hct1
-			}
+	maybeShare := func(left int, c Coord) {
+		right := a.coordIndex(c)
+		if right < len(a) && a[right].Coord == c {
+			share(&a[left], &a[right])
 		}
 	}
 
-	maybeShare := func(left int, right Coord) {
-		i := orig.coordIndex(right)
-		if i < len(orig) && orig[i].Coord == right {
-			share(left, i)
-		}
-	}
-
-	for i := range orig {
-		maybeShare(i, orig[i].Coord.Add(-1, 0))
-		maybeShare(i, orig[i].Coord.Add(1, 0))
-		maybeShare(i, orig[i].Coord.Add(0, -1))
-		maybeShare(i, orig[i].Coord.Add(0, 1))
-		if !other[i].Tile.check() {
-			fmt.Printf("%#v\n", other[i])
+	for i := range a {
+		c := a[i].Coord
+		maybeShare(i, c.Add(-1, 0))
+		maybeShare(i, c.Add(1, 0))
+		maybeShare(i, c.Add(0, -1))
+		maybeShare(i, c.Add(0, 1))
+		if !a[i].Tile.check() {
+			fmt.Printf("%#v\n", a[i])
 			panic("NaN")
 		}
 	}
-	//for i := range other {
-	//	if other[i].Space {
-	//		other[i].Gas = [gasCount]float64{}
-	//		other[i].Temp = TempSpace
-	//	}
-	//}
-	return other, orig
 }
