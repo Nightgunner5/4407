@@ -30,6 +30,9 @@ func (m Map) Compile(padding int64) {
 		max.X += padding
 		max.Y += padding
 
+		m[i].Min = min
+		m[i].Max = max
+
 		m[i].Atmos = make(Atmosphere, 0, (max.X-min.X)*(max.Y-min.Y))
 		for y := min.Y; y < max.Y; y++ {
 			for x := min.X; x < max.X; x++ {
@@ -40,6 +43,8 @@ func (m Map) Compile(padding int64) {
 					m[i].Atmos.Set(Coord{x, y}, TileWall())
 				case Floor:
 					m[i].Atmos.Set(Coord{x, y}, TileIndoor())
+				case Window:
+					m[i].Atmos.Set(Coord{x, y}, TileWindow())
 				}
 			}
 		}
@@ -50,6 +55,7 @@ type Level struct {
 	Layout Layout
 
 	Atmos Atmosphere
+	Min, Max Coord
 }
 
 type Layout map[Coord]LayoutTile
@@ -60,4 +66,5 @@ const (
 	Space LayoutTile = iota
 	Wall
 	Floor
+	Window
 )

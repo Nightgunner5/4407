@@ -16,10 +16,10 @@ func (c Coord) Add(x, y int64) Coord {
 }
 
 type Tile struct {
-	Gas  [gasCount]float64
-	Temp float64
-	Open bool
-
+	Gas          [gasCount]float64
+	Temp         float64
+	Open         bool
+	Space        bool
 	HeatTransfer float64
 }
 
@@ -42,10 +42,18 @@ func TileWall() Tile {
 	}
 }
 
+func TileWindow() Tile {
+	return Tile{
+		Temp:         RoomTemperature,
+		HeatTransfer: 0.03,
+	}
+}
+
 func TileSpace() Tile {
 	return Tile{
 		Temp:         TempSpace,
 		Open:         true,
+		Space:        true,
 		HeatTransfer: 0.4,
 	}
 }
@@ -156,7 +164,7 @@ func (orig Atmosphere) Tick(other Atmosphere) (new, old Atmosphere) {
 				hct1 += n1.Gas[g] * h
 				hct2 += n2.Gas[g] * h
 
-				delta := (t1.Gas[g] - t2.Gas[g]) / 8
+				delta := (n1.Gas[g] - n2.Gas[g]) / 5
 
 				if (-0.0001 < delta && delta < 0.0001) || (t1.Gas[g] < 0.001 && t2.Gas[g] < 0.001) {
 					hcn1 += n1.Gas[g] * h
@@ -184,7 +192,7 @@ func (orig Atmosphere) Tick(other Atmosphere) (new, old Atmosphere) {
 				n2.Temp = (hct2*n2.Temp + hcd1*t1.Temp - hcd2*t2.Temp + ht1 - ht2) / hcn2
 			}
 
-			if hct1 > 0.0003 && hct2 > 0.0003 && hct2 > hcn2*0.9 && hct2 < hcn2*1.1 {
+			if hct1 + hct2 > 0.001 && hct2 > hcn2*0.9 && hct2 < hcn2*1.1 {
 				heat := t1.HeatTransfer * t2.HeatTransfer * deltaTemp / (hct1 + hct2)
 
 				n1.Temp -= heat * hct2
@@ -210,5 +218,11 @@ func (orig Atmosphere) Tick(other Atmosphere) (new, old Atmosphere) {
 			panic("NaN")
 		}
 	}
+	//for i := range other {
+	//	if other[i].Space {
+	//		other[i].Gas = [gasCount]float64{}
+	//		other[i].Temp = TempSpace
+	//	}
+	//}
 	return other, orig
 }
