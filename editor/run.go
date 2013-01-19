@@ -36,6 +36,22 @@ func read() (m matter.Map) {
 	return
 }
 
+func save() {
+	State.Lock()
+	defer State.Unlock()
+
+	State.Compile(8)
+
+	f, err := os.Create(*filename)
+	handle(err)
+	defer f.Close()
+	g := gzip.NewWriter(f)
+	defer g.Close()
+	r := gob.NewEncoder(g)
+	err = r.Encode(State.Map)
+	handle(err)
+}
+
 var State struct {
 	matter.Map
 	sync.RWMutex

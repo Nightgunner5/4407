@@ -26,6 +26,16 @@ func ReadMap(r io.Reader) (matter.Map, error) {
 	return m, err
 }
 
+func clamp(f float64) uint8 {
+	if f >= 255 {
+		return 255
+	}
+	if f <= 0 {
+		return 0
+	}
+	return uint8(f)
+}
+
 func main() {
 	f, err := os.Open("map.gz")
 	if err != nil {
@@ -64,15 +74,15 @@ func main() {
 		tempMax = 300
 		airMax  = 110
 	)
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 1500; i++ {
 		for _, t := range m[0].Atmos {
 			r := image.Rect(int(t.X<<2), int(t.Y<<2), int(t.X<<2)+4, int(t.Y<<2)+4)
 			draw.Draw(img, r, tileicon[m[0].Layout[t.Coord]], image.ZP, draw.Src)
 			overlay := image.NewUniform(color.NRGBA{
-				uint8(t.Temp * 255 / tempMax),
-				uint8(t.Total() * 255 / airMax),
+				clamp(t.Temp * 255 / tempMax),
+				clamp(t.Total() * 255 / airMax),
 				0,
-				uint8((t.Total() + 5) * 200 / airMax),
+				clamp((t.Total() + 5) * 200 / airMax),
 			})
 			draw.Draw(img, r, overlay, image.ZP, draw.Over)
 		}

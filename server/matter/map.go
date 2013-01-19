@@ -16,6 +16,10 @@ func (m Map) Compile(padding int64) {
 	for i := range m {
 		var min, max Coord
 		for c := range m[i].Layout {
+			if m[i].Layout[c] == Space {
+				delete(m[i].Layout, c)
+				continue
+			}
 			if c.X < min.X {
 				min.X = c.X
 			}
