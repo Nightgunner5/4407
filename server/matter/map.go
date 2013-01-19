@@ -1,5 +1,9 @@
 package matter
 
+import (
+	"strconv"
+)
+
 type Map []Level
 
 func (m *Map) NewLevel() Layout {
@@ -68,3 +72,21 @@ const (
 	Floor
 	Window
 )
+
+func (t LayoutTile) String() string {
+	return t.GoString()
+}
+
+func (t LayoutTile) GoString() string {
+	switch t {
+	case Space:
+		return "Space"
+	case Wall:
+		return "Wall"
+	case Floor:
+		return "Floor"
+	case Window:
+		return "Window"
+	}
+	return strconv.FormatUint(uint64(t), 10)
+}

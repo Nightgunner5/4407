@@ -1,2 +1,8 @@
 *.test
 *.prof
+server/server
+server/server.exe
+editor/editor
+editor/editor.exe
+client/client
+client/client.exe

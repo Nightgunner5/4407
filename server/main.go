@@ -7,8 +7,8 @@ import (
 	"github.com/Nightgunner5/4407/server/matter"
 	"image"
 	"image/color"
-	"image/png"
 	"image/draw"
+	"image/png"
 	"io"
 	"os"
 	"runtime/pprof"
@@ -66,7 +66,7 @@ func main() {
 	)
 	for i := 0; i < 10000; i++ {
 		for _, t := range m[0].Atmos {
-			r := image.Rect(int(t.X<<2), int(t.Y<<2), int(t.X<<2) + 4, int(t.Y<<2) + 4)
+			r := image.Rect(int(t.X<<2), int(t.Y<<2), int(t.X<<2)+4, int(t.Y<<2)+4)
 			draw.Draw(img, r, tileicon[m[0].Layout[t.Coord]], image.ZP, draw.Src)
 			overlay := image.NewUniform(color.NRGBA{
 				uint8(t.Temp * 255 / tempMax),
