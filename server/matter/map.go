@@ -53,6 +53,10 @@ func (m Map) Compile(padding int64) {
 					m[i].Atmos.Set(Coord{x, y}, TileIndoor())
 				case Window:
 					m[i].Atmos.Set(Coord{x, y}, TileWindow())
+				case Airlock:
+					m[i].Atmos.Set(Coord{x, y}, TileWall())
+				case HeatVent:
+					m[i].Atmos.Set(Coord{x, y}, TileHeater())
 				}
 			}
 		}
@@ -75,6 +79,8 @@ const (
 	Wall
 	Floor
 	Window
+	Airlock
+	HeatVent
 )
 
 func (t LayoutTile) String() string {
@@ -91,6 +97,10 @@ func (t LayoutTile) GoString() string {
 		return "Floor"
 	case Window:
 		return "Window"
+	case Airlock:
+		return "Airlock"
+	case HeatVent:
+		return "HeatVent"
 	}
 	return strconv.FormatUint(uint64(t), 10)
 }

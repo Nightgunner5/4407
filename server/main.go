@@ -48,7 +48,7 @@ func main() {
 	}
 
 	const (
-		tileMax = 4
+		tileMax = 6
 	)
 	var tileicon [tileMax]image.Image
 	for i := range tileicon {
@@ -69,20 +69,21 @@ func main() {
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
 
-	img := image.NewRGBA(image.Rect(int(m[0].Min.X)<<2, int(m[0].Min.Y)<<2, int(m[0].Max.X)<<2, int(m[0].Max.Y)<<2))
+	img := image.NewRGBA(image.Rect(int(m[0].Min.X)<<3, int(m[0].Min.Y)<<3, int(m[0].Max.X)<<3, int(m[0].Max.Y)<<3))
 	const (
-		tempMax = 300
+		tempMax = 400
 		airMax  = 110
 	)
 	for i := 0; i < 1500; i++ {
 		for _, t := range m[0].Atmos {
-			r := image.Rect(int(t.X<<2), int(t.Y<<2), int(t.X<<2)+4, int(t.Y<<2)+4)
+			r := image.Rect(int(t.X<<3), int(t.Y<<3), int(t.X<<3)+8, int(t.Y<<3)+8)
 			draw.Draw(img, r, tileicon[m[0].Layout[t.Coord]], image.ZP, draw.Src)
+
+			air := clamp(t.Total() * 255 / airMax)
+			heat := clamp(t.Temp * 255 / tempMax)
+
 			overlay := image.NewUniform(color.NRGBA{
-				clamp(t.Temp * 255 / tempMax),
-				clamp(t.Total() * 255 / airMax),
-				0,
-				clamp((t.Total() + 5) * 200 / airMax),
+				heat, air, 0, 100,
 			})
 			draw.Draw(img, r, overlay, image.ZP, draw.Over)
 		}

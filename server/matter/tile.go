@@ -20,6 +20,7 @@ type Tile struct {
 	Temp         float64
 	Open         bool
 	Space        bool
+	Heater       bool
 	HeatTransfer float64
 	HeatCapacity float64
 }
@@ -32,6 +33,21 @@ func TileIndoor() Tile {
 			Nitrogen: TileContentsNitrogen,
 		},
 		Temp:         RoomTemperature,
+		Open:         true,
+		HeatTransfer: 0.04,
+		HeatCapacity: 225000,
+	}
+}
+
+func TileHeater() Tile {
+	return Tile{
+		Gas: [gasCount]float64{
+			0:        100,
+			Oxygen:   TileContentsOxygen,
+			Nitrogen: TileContentsNitrogen,
+		},
+		Temp:         RoomTemperature,
+		Heater:       true,
 		Open:         true,
 		HeatTransfer: 0.04,
 		HeatCapacity: 225000,
@@ -221,6 +237,12 @@ func (a Atmosphere) Tick() {
 
 	for i := range a {
 		c := a[i].Coord
+		if a[i].Space {
+			a[i].Temp = math.Max(TempSpace, a[i].Temp-1)
+		}
+		if a[i].Heater {
+			a[i].Temp += 5
+		}
 		maybeShare(i, c.Add(-1, 0))
 		maybeShare(i, c.Add(1, 0))
 		maybeShare(i, c.Add(0, -1))

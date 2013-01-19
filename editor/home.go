@@ -31,7 +31,7 @@ var c = document.querySelector('canvas');
 var ctx = c.getContext('2d');
 
 var tileSize = 16;
-var tileColor = ['#000', '#444', '#ccc', '#448'];
+var tileColor = ['#000', '#444', '#ccc', '#448', '#c44', '#aaa'];
 var chosenTile = 1;
 
 function levels() {

@@ -40,7 +40,7 @@ func save() {
 	State.Lock()
 	defer State.Unlock()
 
-	State.Compile(8)
+	State.Compile(16)
 
 	f, err := os.Create(*filename)
 	handle(err)
@@ -50,6 +50,7 @@ func save() {
 	r := gob.NewEncoder(g)
 	err = r.Encode(State.Map)
 	handle(err)
+	fmt.Println("Map saved to ", *filename)
 }
 
 var State struct {
