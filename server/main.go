@@ -52,6 +52,10 @@ func main() {
 		tileicon[i] = f
 	}
 
+	for i := range State.M {
+		http.HandleFunc(fmt.Sprintf("/level/%d", i), level(i))
+	}
+
 	f, _ = os.Create("cpu.prof")
 	defer f.Close()
 	pprof.StartCPUProfile(f)
