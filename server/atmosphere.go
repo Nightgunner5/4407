@@ -18,9 +18,28 @@ type transferAtmos struct {
 
 func atmosphere() {
 	for {
+		var playerLocations []struct {
+			XY matter.Coord
+			Z  int
+		}
+		Players.RLock()
+		for p := range Players.C {
+			playerLocations = append(playerLocations, struct {
+				XY matter.Coord
+				Z  int
+			}{p.Coord, p.Z})
+		}
+		Players.RUnlock()
+
 		State.Lock()
-		for i := range State.M {
-			State.M[i].Atmos.Tick()
+		for _, p := range playerLocations {
+			t := State.M[p.Z].Atmos.Get(p.XY)
+			if t != nil {
+				t.Temp += 2.5
+			}
+		}
+		for z := range State.M {
+			State.M[z].Atmos.Tick()
 		}
 		State.Unlock()
 

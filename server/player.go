@@ -1,12 +1,14 @@
 package main
 
 import (
+	"github.com/Nightgunner5/4407/server/matter"
 	"sync"
 )
 
 type Player struct {
 	Send chan<- interface{}
-	Z    int
+	matter.Coord
+	Z int
 }
 
 var Players = struct {
