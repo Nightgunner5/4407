@@ -81,6 +81,8 @@ const (
 	Window
 	Airlock
 	HeatVent
+
+	TileCount
 )
 
 func (t LayoutTile) String() string {
