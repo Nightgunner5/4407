@@ -64,20 +64,29 @@ window.onkeyup = function(e) {
 	}
 };
 
+var lastMove = new Date().getTime();
 setInterval(function() {
+	var now = new Date().getTime();
+	var delta = (now - lastMove) / 1000;
+	lastMove = now;
+
 	var dx = 0, dy = 0;
 	if (moveLeft) {
-		dx -= 0.1;
+		dx -= delta;
 	}
 	if (moveRight) {
-		dx += 0.1;
+		dx += delta;
 	}
 	if (moveUp) {
-		dy -= 0.1;
+		dy -= delta;
 	}
 	if (moveDown) {
-		dy += 0.1;
+		dy += delta;
 	}
+	if (dx < -1) dx = -1;
+	if (dx > 1) dx = 1;
+	if (dy < -1) dy = -1;
+	if (dy > 1) dy = 1;
 	if (Math.round(offsetX + dx) != Math.round(offsetX) ||
 		Math.round(offsetY + dy) != Math.round(offsetY)) {
 		if (!open(Math.round(offsetX + dx), Math.round(offsetY + dy)))
@@ -136,10 +145,14 @@ function dispatch(p) {
 	}
 	if ('Map' in p) {
 		map = p.Map;
+		var merge = function(t) {
+			if (t == 5) return 2;
+			return t;
+		};
 		map.forEach(function(t) {
 			var icon = 0;
 			map.forEach(function(tt) {
-				if (tt[2] != t[2]) return;
+				if (merge(tt[2]) != merge(t[2])) return;
 				if (tt[0] == t[0] && tt[1] == t[1]-1) icon |= 1;
 				if (tt[0] == t[0] && tt[1] == t[1]+1) icon |= 2;
 				if (tt[0] == t[0]+1 && tt[1] == t[1]) icon |= 4;
@@ -195,7 +208,7 @@ function paint() {
 	});
 
 	ctx.fillStyle = '#000';
-	map.forEach(function(t) {
+	/*map.forEach(function(t) {
 		if (t[2] == 1) {
 			var x = Math.round(t[0]*size - offsetX*size + centerX);
 			var y = Math.round(t[1]*size - offsetY*size + centerY);
@@ -233,7 +246,7 @@ function paint() {
 				ctx.fill();
 			}
 		}
-	});
+	});*/
 
 	if (currentAtmos) {
 		var x = Math.round(w - size * 1.1);
@@ -246,7 +259,7 @@ function paint() {
 			ctx.drawImage(statusCond, tileSize*2, 0, tileSize, tileSize, x, y, size, size);
 			x -= size;
 		}
-		if (currentAtmos.Oxygen - currentAtmos.CarbonDioxide < 5) {
+		if (currentAtmos.Oxygen - currentAtmos.CarbonDioxide < 5 && currentTile != 4) {
 			ctx.drawImage(statusCond, tileSize*0, 0, tileSize, tileSize, x, y, size, size);
 			x -= size;
 		}

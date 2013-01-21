@@ -241,7 +241,11 @@ func (a Atmosphere) Tick() {
 			a[i].Temp = math.Max(TempSpace, a[i].Temp-1)
 		}
 		if a[i].Heater {
-			a[i].Temp += 5
+			if a[i].Temp > RoomTemperature {
+				a[i].Temp -= 5
+			} else {
+				a[i].Temp += 5
+			}
 		}
 		maybeShare(i, c.Add(-1, 0))
 		maybeShare(i, c.Add(1, 0))
