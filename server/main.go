@@ -3,10 +3,8 @@ package main
 import (
 	"compress/gzip"
 	"encoding/gob"
-	"fmt"
 	"github.com/Nightgunner5/4407/server/matter"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"runtime/pprof"
@@ -30,8 +28,6 @@ var State struct {
 	sync.RWMutex
 }
 
-var tileicon [matter.TileCount][]byte
-
 func main() {
 	f, err := os.Open("map.gz")
 	if err != nil {
@@ -43,14 +39,6 @@ func main() {
 		panic(err)
 	}
 	State.M = m
-
-	for i := range tileicon {
-		f, err := ioutil.ReadFile(fmt.Sprintf("tile-%d.png", i))
-		if err != nil {
-			panic(err)
-		}
-		tileicon[i] = f
-	}
 
 	f, _ = os.Create("cpu.prof")
 	defer f.Close()

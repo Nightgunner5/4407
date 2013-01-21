@@ -30,37 +30,80 @@ function resize() {
 }
 resize();
 window.onresize = resize;
+var moveUp = false, moveDown = false, moveLeft = false, moveRight = false;
 window.onkeydown = function(e) {
 	switch (e.which) {
 	case 38: // up
-		if (open(offsetX, offsetY-1)) --offsetY;
-		break;
+		moveUp = true;
+		return;
 	case 40: // down
-		if (open(offsetX, offsetY+1)) ++offsetY;
-		break;
+		moveDown = true;
+		return;
 	case 37: // left
-		if (open(offsetX-1, offsetY)) --offsetX;
-		break;
+		moveLeft = true;
+		return;
 	case 39: // right
-		if (open(offsetX+1, offsetY)) ++offsetX;
-		break;
-	default:
+		moveRight = true;
 		return;
 	}
-	ws.send(JSON.stringify({Move:{X:offsetX, Y:offsetY}}));
+};
+window.onkeyup = function(e) {
+	switch (e.which) {
+	case 38: // up
+		moveUp = false;
+		return;
+	case 40: // down
+		moveDown = false;
+		return;
+	case 37: // left
+		moveLeft = false;
+		return;
+	case 39: // right
+		moveRight = false;
+		return;
+	}
 };
 
+setInterval(function() {
+	var dx = 0, dy = 0;
+	if (moveLeft) {
+		dx -= 0.1;
+	}
+	if (moveRight) {
+		dx += 0.1;
+	}
+	if (moveUp) {
+		dy -= 0.1;
+	}
+	if (moveDown) {
+		dy += 0.1;
+	}
+	if (Math.round(offsetX + dx) != Math.round(offsetX) ||
+		Math.round(offsetY + dy) != Math.round(offsetY)) {
+		if (!open(Math.round(offsetX + dx), Math.round(offsetY + dy)))
+			return;
+
+		ws.send(JSON.stringify({Position: {
+			X: Math.round(offsetX + dx),
+			Y: Math.round(offsetX + dx)
+		}}));
+	}
+	offsetX += dx;
+	offsetY += dy;
+}, 25);
+
+var tileSize = 32, statusCond = new Image();
+statusCond.src = '/icon/status-cond.png';
 var tile = [new Image(), new Image(), new Image(), new Image(), new Image(), new Image()];
 for (var i = 0; i < tile.length; i++) {
 	tile[i].src = '/tile/' + i + '.png';
 }
-var tileSize = 32;
 
 var requestAnimationFrame = window.requestAnimationFrame ||
 	window.mozRequestAnimationFrame ||
 	window.webkitRequestAnimationFrame ||
 	window.msRequestAnimationFrame ||
-	function(f){ setTimeout(f, 33); };
+	setTimeout;
 
 var currentLevel = 0, map = [], atmos = [];
 
@@ -118,9 +161,11 @@ function round(f) {
 var offsetX = 0, offsetY = 0;
 
 function paint() {
-	requestAnimationFrame(paint);
+	requestAnimationFrame(paint, 33);
 
 	var w = ctx.canvas.width, h = ctx.canvas.height;
+	var centerX = Math.round(w/2);
+	var centerY = Math.round(h/2);
 
 	ctx.fillStyle = '#000';
 	ctx.fillRect(0, 0, w, h);
@@ -128,25 +173,32 @@ function paint() {
 	var size = round(h / 16);
 	var s2 = size/2;
 
+	var currentTile = 0;
 	map.forEach(function(t) {
-		var x = Math.round(t[0]*size - s2 - offsetX*size + w/2);
-		var y = Math.round(t[1]*size - s2 - offsetY*size + h/2);
+		var x = Math.round(t[0]*size - s2 - offsetX*size + centerX);
+		var y = Math.round(t[1]*size - s2 - offsetY*size + centerY);
 		ctx.drawImage(tile[t[2]], tileSize*t[3], 0, tileSize, tileSize, x, y, size, size);
+		if (t[0] == Math.round(offsetX) && t[1] == Math.round(offsetY)) {
+			currentTile = t[2];
+		}
 	});
+
+	var currentAtmos;
 	atmos.forEach(function(t) {
-		var x = Math.round(t.X*size - s2 - offsetX*size + w/2);
-		var y = Math.round(t.Y*size - s2 - offsetY*size + h/2);
+		var x = Math.round(t.X*size - s2 - offsetX*size + centerX);
+		var y = Math.round(t.Y*size - s2 - offsetY*size + centerY);
 		ctx.fillStyle = 'rgba(' + Math.round(Math.min(Math.max(t.Temp - 100, 0), 255)) + ', 128, ' + Math.round(Math.min(Math.max(300 - t.Temp, 0), 255)) + ', 0.2)';
 		ctx.fillRect(x, y, size, size);
+		if (t.X == Math.round(offsetX) && t.Y == Math.round(offsetY)) {
+			currentAtmos = t;
+		}
 	});
+
 	ctx.fillStyle = '#000';
-	var centerX = Math.round(w/2);
-	var centerY = Math.round(h/2);
-	++s2;
 	map.forEach(function(t) {
 		if (t[2] == 1) {
-			var x = Math.round(t[0]*size - offsetX*size + w/2);
-			var y = Math.round(t[1]*size - offsetY*size + h/2);
+			var x = Math.round(t[0]*size - offsetX*size + centerX);
+			var y = Math.round(t[1]*size - offsetY*size + centerY);
 			var dx = centerX-x, dy = centerY-y;
 			if (x < centerX) {
 				ctx.beginPath();
@@ -182,8 +234,31 @@ function paint() {
 			}
 		}
 	});
+
+	if (currentAtmos) {
+		var x = Math.round(w - size * 1.1);
+		var y = Math.round(size * 0.1);
+		if (currentAtmos.Temp > 325) {
+			ctx.drawImage(statusCond, tileSize*1, 0, tileSize, tileSize, x, y, size, size);
+			x -= size;
+		}
+		if (currentAtmos.Temp < 270) {
+			ctx.drawImage(statusCond, tileSize*2, 0, tileSize, tileSize, x, y, size, size);
+			x -= size;
+		}
+		if (currentAtmos.Oxygen - currentAtmos.CarbonDioxide < 5) {
+			ctx.drawImage(statusCond, tileSize*0, 0, tileSize, tileSize, x, y, size, size);
+			x -= size;
+		}
+		if (currentAtmos.Plasma + currentAtmos.NitrousOxide > 1) {
+			ctx.drawImage(statusCond, tileSize*3, 0, tileSize, tileSize, x, y, size, size);
+			x -= size;
+		}
+	}
+
+	ctx.fillRect(centerX-s2, centerY-s2, size, size);
 }
-requestAnimationFrame(paint);
+requestAnimationFrame(paint, 33);
 </script>
 </body>
 </html>`)
