@@ -36,6 +36,12 @@ func atmosphere() {
 			t := State.M[p.Z].Atmos.Get(p.XY)
 			if t != nil {
 				t.Temp += 2.5
+				if t.Gas[matter.Oxygen] > 1 {
+					t.Gas[matter.Oxygen] -= 1
+					t.Gas[matter.CarbonDioxide] += 1
+				} else {
+					// TODO: damage
+				}
 			}
 		}
 		for z := range State.M {
@@ -43,11 +49,21 @@ func atmosphere() {
 		}
 		State.Unlock()
 
-		State.RLock()
-		a := make([]struct{ Atmos []transferAtmos }, len(State.M))
-		for i, l := range State.M {
-			for _, t := range l.Atmos {
-				a[i].Atmos = append(a[i].Atmos, transferAtmos{
+		Players.RLock()
+		for p := range Players.C {
+			coord := p.Coord
+			z := p.Z
+			Players.RUnlock()
+			State.RLock()
+			var a []transferAtmos
+			for _, t := range State.M[z].Atmos {
+				if t.X < coord.X-25 ||
+					t.X > coord.X+25 ||
+					t.Y < coord.Y-25 ||
+					t.Y > coord.Y+25 {
+					continue
+				}
+				a = append(a, transferAtmos{
 					t.Temp,
 					t.Gas[matter.Oxygen],
 					t.Gas[matter.Nitrogen],
@@ -58,15 +74,14 @@ func atmosphere() {
 					t.Y,
 				})
 			}
-		}
-		State.RUnlock()
+			State.RUnlock()
 
-		Players.RLock()
-		for p := range Players.C {
 			select {
-			case p.Send <- a[p.Z]:
+			case p.Send <- struct{ Atmos []transferAtmos }{a}:
 			default:
 			}
+
+			Players.RLock()
 		}
 		Players.RUnlock()
 

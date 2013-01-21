@@ -67,7 +67,7 @@ window.onkeyup = function(e) {
 var lastMove = new Date().getTime();
 setInterval(function() {
 	var now = new Date().getTime();
-	var delta = (now - lastMove) / 1000;
+	var delta = (now - lastMove) / 250;
 	lastMove = now;
 
 	var dx = 0, dy = 0;
@@ -94,15 +94,16 @@ setInterval(function() {
 
 		ws.send(JSON.stringify({Position: {
 			X: Math.round(offsetX + dx),
-			Y: Math.round(offsetX + dx)
+			Y: Math.round(offsetY + dx)
 		}}));
 	}
 	offsetX += dx;
 	offsetY += dy;
 }, 25);
 
-var tileSize = 32, statusCond = new Image();
+var tileSize = 32, statusCond = new Image(), playerIcon = new Image();
 statusCond.src = '/icon/status-cond.png';
+playerIcon.src = '/icon/player.png';
 var tile = [new Image(), new Image(), new Image(), new Image(), new Image(), new Image()];
 for (var i = 0; i < tile.length; i++) {
 	tile[i].src = '/tile/' + i + '.png';
@@ -112,7 +113,7 @@ var requestAnimationFrame = window.requestAnimationFrame ||
 	window.mozRequestAnimationFrame ||
 	window.webkitRequestAnimationFrame ||
 	window.msRequestAnimationFrame ||
-	setTimeout;
+	function(f) { setTimeout(f, 33) };
 
 var currentLevel = 0, map = [], atmos = [];
 
@@ -162,6 +163,14 @@ function dispatch(p) {
 		});
 		return;
 	}
+	if ('Teleport' in p) {
+		if (p.Teleport.ID) {
+			// TODO
+		} else {
+			offsetX = p.Teleport.X;
+			offsetY = p.Teleport.Y;
+		}
+	}
 	console.log(p);
 }
 
@@ -174,7 +183,7 @@ function round(f) {
 var offsetX = 0, offsetY = 0;
 
 function paint() {
-	requestAnimationFrame(paint, 33);
+	requestAnimationFrame(paint);
 
 	var w = ctx.canvas.width, h = ctx.canvas.height;
 	var centerX = Math.round(w/2);
@@ -187,25 +196,35 @@ function paint() {
 	var s2 = size/2;
 
 	var currentTile = 0;
-	map.forEach(function(t) {
+	for (var i = 0; i < map.length; ++i) {
+		var t = map[i];
 		var x = Math.round(t[0]*size - s2 - offsetX*size + centerX);
 		var y = Math.round(t[1]*size - s2 - offsetY*size + centerY);
-		ctx.drawImage(tile[t[2]], tileSize*t[3], 0, tileSize, tileSize, x, y, size, size);
-		if (t[0] == Math.round(offsetX) && t[1] == Math.round(offsetY)) {
-			currentTile = t[2];
+		if (x < w && x > -size && y < h && y > -size) {
+			ctx.drawImage(tile[t[2]], tileSize*t[3], 0, tileSize, tileSize, x, y, size, size);
+			if (t[0] == Math.round(offsetX) && t[1] == Math.round(offsetY)) {
+				currentTile = t[2];
+			}
 		}
-	});
+	}
 
+	ctx.drawImage(playerIcon, centerX-s2, centerY-s2, size, size);
+
+	ctx.globalAlpha = 0.2;
 	var currentAtmos;
-	atmos.forEach(function(t) {
+	for (var i = 0; i < atmos.length; ++i) {
+		var t = atmos[i];
 		var x = Math.round(t.X*size - s2 - offsetX*size + centerX);
 		var y = Math.round(t.Y*size - s2 - offsetY*size + centerY);
-		ctx.fillStyle = 'rgba(' + Math.round(Math.min(Math.max(t.Temp - 100, 0), 255)) + ', 128, ' + Math.round(Math.min(Math.max(300 - t.Temp, 0), 255)) + ', 0.2)';
-		ctx.fillRect(x, y, size, size);
-		if (t.X == Math.round(offsetX) && t.Y == Math.round(offsetY)) {
-			currentAtmos = t;
+		if (x < w && x > -size && y < h && y > -size) {
+			ctx.fillStyle = 'rgb(' + Math.round(Math.min(Math.max(t.Temp - 100, 0), 255)) + ', 128, ' + Math.round(Math.min(Math.max(300 - t.Temp, 0), 255)) + ')';
+			ctx.fillRect(x, y, size, size);
+			if (t.X == Math.round(offsetX) && t.Y == Math.round(offsetY)) {
+				currentAtmos = t;
+			}
 		}
-	});
+	}
+	ctx.globalAlpha = 1;
 
 	ctx.fillStyle = '#000';
 	/*map.forEach(function(t) {
@@ -268,10 +287,8 @@ function paint() {
 			x -= size;
 		}
 	}
-
-	ctx.fillRect(centerX-s2, centerY-s2, size, size);
 }
-requestAnimationFrame(paint, 33);
+requestAnimationFrame(paint);
 </script>
 </body>
 </html>`)

@@ -51,7 +51,18 @@ func socket(conn *websocket.Conn) {
 			z := p.Z
 			Players.RUnlock()
 
-			if (c.X-packet.Position.X)*(c.X-packet.Position.X)+(c.Y-packet.Position.Y)*(c.Y-packet.Position.Y) != 1 {
+			dx := c.X - packet.Position.X
+			dy := c.Y - packet.Position.Y
+			if dx < -1 || dx > 1 || dy < -1 || dy > 1 {
+				p.Send <- struct {
+					Teleport struct {
+						ID   uint32
+						X, Y int64
+					}
+				}{struct {
+					ID   uint32
+					X, Y int64
+				}{0, p.X, p.Y}}
 				break
 			}
 

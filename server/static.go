@@ -13,6 +13,7 @@ func init() {
 	}
 
 	http.HandleFunc("/icon/status-cond.png", staticHandler("status-cond.png"))
+	http.HandleFunc("/icon/player.png", staticHandler("player.png"))
 }
 
 func staticHandler(fn string) func(http.ResponseWriter, *http.Request) {
