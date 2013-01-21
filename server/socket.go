@@ -2,7 +2,7 @@ package main
 
 import (
 	"code.google.com/p/go.net/websocket"
-	"github.com/Nightgunner5/4407/server/matter"
+	"github.com/Nightgunner5/4407/matter"
 	"log"
 	"net/http"
 )

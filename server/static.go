@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/Nightgunner5/4407/server/matter"
+	"github.com/Nightgunner5/4407/matter"
 	"io/ioutil"
 	"net/http"
 )

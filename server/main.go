@@ -3,7 +3,7 @@ package main
 import (
 	"compress/gzip"
 	"encoding/gob"
-	"github.com/Nightgunner5/4407/server/matter"
+	"github.com/Nightgunner5/4407/matter"
 	"io"
 	"net/http"
 	"os"

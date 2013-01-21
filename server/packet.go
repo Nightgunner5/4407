@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/Nightgunner5/4407/server/matter"
+	"github.com/Nightgunner5/4407/matter"
 )
 
 type Packet struct {
