@@ -14,6 +14,8 @@ func init() {
 
 	http.HandleFunc("/icon/status-cond.png", staticHandler("status-cond.png"))
 	http.HandleFunc("/icon/player.png", staticHandler("player.png"))
+
+	http.HandleFunc("/icon/chair.png", staticHandler("chair.png"))
 }
 
 func staticHandler(fn string) func(http.ResponseWriter, *http.Request) {
