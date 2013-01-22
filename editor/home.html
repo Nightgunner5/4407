@@ -6,6 +6,9 @@
 canvas {
 	background: #000;
 }
+#toolbar canvas {
+	border: 4px solid #fff;
+}
 body {
 	padding-bottom: 40px;
 }
@@ -15,130 +18,143 @@ body {
 	left: 8px;
 	right: 8px;
 }
+button {
+	height: 40px;
+	vertical-align: top;
+}
 </style>
 </head>
 <body>
-<canvas width="1" height="1"></canvas>
+<canvas></canvas>
 <div id="toolbar"></div>
 <script>
 var c = document.querySelector('canvas');
 var ctx = c.getContext('2d');
 
 var tileSize = 16;
-var tileColor = ['#000', '#444', '#ccc', '#448', '#c44', '#aaa'];
+var tileIcon = [new Image(), new Image(), new Image(), new Image(), new Image(), new Image()];
+for (var i = 0; i < tileIcon.length; ++i) {
+	tileIcon[i].src = '/tile/' + i + '.png';
+	tileIcon[i].addEventListener('load', redraw, false);
+}
 var chosenTile = 1;
 
-function levels() {
-	var xhr = new XMLHttpRequest();
-	xhr.open('GET', '/levels', true);
-	xhr.addEventListener('load', function() {
-		var toolbar = document.querySelector('#toolbar');
-		toolbar.innerHTML = '';
-		for (var i = 0, l = parseInt(xhr.responseText); i < l; i++) {
-			var b = document.createElement('button');
-			b.innerHTML = 'Level ' + i;
-			(function(i) {
-				b.onclick = function() {
-					level(i);
-				};
-			})(i);
-			toolbar.appendChild(b);
-		}
-		var b = document.createElement('button');
-		b.innerHTML = 'New Level';
-		b.onclick = function() {
-			newLevel();
-		};
-		toolbar.appendChild(b);
-		tileColor.forEach(function(color, i) {
-			var b = document.createElement('button');
-			b.innerHTML = 'C';
-			b.style.color = '#fff';
-			b.style.textShadow = '0 1px 2px #000';
-			b.style.background = color;
-			b.onclick = function() {
-				chosenTile = i;
-			};
-			toolbar.appendChild(b);
-		});
-
-		var b = document.createElement('button');
-		b.innerHTML = 'Compile and Save';
-		b.onclick = function() {
-			compileAndSave();
-		};
-		toolbar.appendChild(b);
-	}, false);
-	xhr.send();
+var ws;
+function connect() {
+	ws = new WebSocket('ws://' + location.host + '/ws');
+	ws.onmessage = function(e) {
+		dispatch(JSON.parse(e.data));
+	};
+	ws.onclose = function() {
+		setTimeout(connect, 1000);
+	};
 }
-levels();
+connect();
+
+var map = [];
+var currentZ = 0;
+
+function dispatch(packet) {
+	if (packet.MapZ) {
+		map[packet.MapZ.Z] = packet.MapZ.M;
+		levels();
+		redraw();
+		return;
+	}
+	console.log(packet);
+}
+
+function levels() {
+	var toolbar = document.querySelector('#toolbar');
+	toolbar.innerHTML = '';
+	for (var i = 0; i < map.length; ++i) {
+		var b = document.createElement('button');
+		b.innerHTML = 'Level ' + i;
+		(function(i) {
+			b.onclick = function() {
+				currentZ = i;
+				repaint();
+			};
+		})(i);
+		toolbar.appendChild(b);
+	}
+	var b = document.createElement('button');
+	b.innerHTML = 'New Level';
+	b.onclick = function() {
+		newLevel();
+	};
+	toolbar.appendChild(b);
+	tileIcon.forEach(function(t, i) {
+		var b = document.createElement('canvas');
+		b.width = 32;
+		b.height = 32;
+		toolbar.appendChild(b);
+		t.onload = function() {
+			b.getContext('2d').drawImage(t, 0, 0);
+		};
+		b.getContext('2d').drawImage(t, 0, 0);
+		b.onclick = function() {
+			chosenTile = i;
+		};
+	});
+	var b = document.createElement('button');
+	b.innerHTML = 'Compile and Save';
+	b.onclick = function() {
+		compileAndSave();
+	};
+	toolbar.appendChild(b);
+}
 
 function paintTile(x, y, t) {
-	ctx.fillStyle = tileColor[t];
-	ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+	ctx.drawImage(tileIcon[t], 0, 0, 32, 32, x * tileSize, y * tileSize, tileSize, tileSize);
 }
 
-function level(i) {
-	var xhr = new XMLHttpRequest();
-	xhr.open('GET', '/level/' + i, true);
-	xhr.addEventListener('load', function() {
-		var l = JSON.parse(xhr.responseText);
-		var minX = 0, minY = 0, maxX = 0, maxY = 0;
-		l.forEach(function(t) {
-			if (t[0] < minX)
-				minX = t[0];
-			if (t[1] < minY)
-				minY = t[1];
-			if (t[0] > maxX)
-				maxX = t[0];
-			if (t[1] > maxY)
-				maxY = t[1];
-		});
-		minX -= 8;
-		minY -= 8;
-		maxX += 8;
-		maxY += 8;
+function redraw() {
+	level(map[currentZ]);
+}
 
-		c.width = (maxX - minX + 1) * tileSize;
-		c.height = (maxY - minY + 1) * tileSize;
-		ctx = c.getContext('2d');
-		l.forEach(function(t) {
-			paintTile(t[0] - minX, t[1] - minY, t[2]);
-		});
+function level(l) {
+	var minX = 0, minY = 0, maxX = 0, maxY = 0;
+	l.forEach(function(t) {
+		if (t.X < minX)
+			minX = t.X;
+		if (t.Y < minY)
+			minY = t.Y;
+		if (t.X > maxX)
+			maxX = t.X;
+		if (t.Y > maxY)
+			maxY = t.Y;
+	});
+	minX -= 8;
+	minY -= 8;
+	maxX += 8;
+	maxY += 8;
 
-		c.onclick = function(e) {
-			var x = Math.floor(e.offsetX / tileSize) + minX;
-			var y = Math.floor(e.offsetY / tileSize) + minY;
+	c.width = (maxX - minX + 1) * tileSize;
+	c.height = (maxY - minY + 1) * tileSize;
+	ctx = c.getContext('2d');
+	l.forEach(function(t) {
+		paintTile(t.X - minX, t.Y - minY, t.Turf);
+	});
 
-			setTile(i, x, y);
-		};
-	}, false);
-	xhr.send();
+	c.onclick = function(e) {
+		var x = Math.floor(e.offsetX / tileSize) + minX;
+		var y = Math.floor(e.offsetY / tileSize) + minY;
+
+		setTile(currentZ, x, y);
+	};
 }
 
 function setTile(z, x, y) {
-	var xhr = new XMLHttpRequest();
-	xhr.open('GET', '/set/' + z + '/' + x + '/' + y + '/' + chosenTile, true);
-	xhr.addEventListener('load', function() {
-		level(z);
-	}, false);
-	xhr.send();
+	ws.send(JSON.stringify({Set: {Z: z, X: x, Y: y, Turf: chosenTile}}));
 }
 
 function newLevel() {
-	var xhr = new XMLHttpRequest();
-	xhr.open('GET', '/levels/new', true);
-	xhr.addEventListener('load', function() {
-		levels();
-		level(parseInt(xhr.responseText));
-	}, false);
-	xhr.send();
+	ws.send(JSON.stringify({NewLevel: {}}));
 }
 
 function compileAndSave() {
-	var xhr = new XMLHttpRequest();
-	xhr.open('GET', '/save', true);
-	xhr.send();
+	ws.send(JSON.stringify({Save: {}}));
 }
 </script>
 </body>

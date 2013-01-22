@@ -40,7 +40,7 @@ func save() {
 	State.Lock()
 	defer State.Unlock()
 
-	State.Compile(16)
+	State.M.Compile(16)
 
 	f, err := os.Create(*filename)
 	handle(err)
@@ -48,13 +48,13 @@ func save() {
 	g := gzip.NewWriter(f)
 	defer g.Close()
 	r := gob.NewEncoder(g)
-	err = r.Encode(State.Map)
+	err = r.Encode(State.M)
 	handle(err)
 	fmt.Println("Map saved to ", *filename)
 }
 
 var State struct {
-	matter.Map
+	M matter.Map
 	sync.RWMutex
 }
 
@@ -70,7 +70,7 @@ func main() {
 
 	if !*startnew {
 		fmt.Println("Reading map from", *filename)
-		State.Map = read()
+		State.M = read()
 		fmt.Println("Map read successfully")
 	}
 
