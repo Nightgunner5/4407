@@ -73,7 +73,9 @@ type Level struct {
 type Layout map[Coord]LayoutTile
 
 type LayoutTile struct {
-	Turf LayoutTileTurf
+	Turf    LayoutTileTurf
+	Area    string
+	Objects []LayoutObject
 }
 
 type LayoutTileTurf uint32
@@ -109,4 +111,9 @@ func (t LayoutTileTurf) GoString() string {
 		return "HeatVent"
 	}
 	return strconv.FormatUint(uint64(t), 10)
+}
+
+type LayoutObject struct {
+	Icon       string
+	IconOffset uint16
 }

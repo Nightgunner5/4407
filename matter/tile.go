@@ -241,9 +241,7 @@ func (a Atmosphere) Tick() {
 			a[i].Temp = math.Max(TempSpace, a[i].Temp-1)
 		}
 		if a[i].Heater {
-			if a[i].Temp > RoomTemperature {
-				a[i].Temp -= 2.5
-			} else {
+			if a[i].Temp < RoomTemperature {
 				a[i].Temp += 7.5
 			}
 		}
