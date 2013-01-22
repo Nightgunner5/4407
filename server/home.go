@@ -120,7 +120,7 @@ var currentLevel = 0, map = [], atmos = [];
 function open(x, y) {
 	var o = true;
 	map.forEach(function(t) {
-		if (t[0] == x && t[1] == y && (t[2] == 1 || t[2] == 3)) {
+		if (t.X == x && t.Y == y && (t.Turf == 1 || t.Turf == 3)) {
 			o = false;
 		}
 	});
@@ -151,15 +151,15 @@ function dispatch(p) {
 			return t;
 		};
 		map.forEach(function(t) {
-			var icon = 0;
+			var dir = 0;
 			map.forEach(function(tt) {
-				if (merge(tt[2]) != merge(t[2])) return;
-				if (tt[0] == t[0] && tt[1] == t[1]-1) icon |= 1;
-				if (tt[0] == t[0] && tt[1] == t[1]+1) icon |= 2;
-				if (tt[0] == t[0]+1 && tt[1] == t[1]) icon |= 4;
-				if (tt[0] == t[0]-1 && tt[1] == t[1]) icon |= 8;
+				if (merge(tt.Turf) != merge(t.Turf)) return;
+				if (tt.X == t.X && tt.Y == t.Y-1) dir |= 1;
+				if (tt.X == t.X && tt.Y == t.Y+1) dir |= 2;
+				if (tt.X == t.X+1 && tt.Y == t.Y) dir |= 4;
+				if (tt.X == t.X-1 && tt.Y == t.Y) dir |= 8;
 			});
-			t[3] = icon;
+			t.Dir = dir;
 		});
 		return;
 	}
@@ -198,12 +198,12 @@ function paint() {
 	var currentTile = 0;
 	for (var i = 0; i < map.length; ++i) {
 		var t = map[i];
-		var x = Math.round(t[0]*size - s2 - offsetX*size + centerX);
-		var y = Math.round(t[1]*size - s2 - offsetY*size + centerY);
+		var x = Math.round(t.X*size - s2 - offsetX*size + centerX);
+		var y = Math.round(t.Y*size - s2 - offsetY*size + centerY);
 		if (x < w && x > -size && y < h && y > -size) {
-			ctx.drawImage(tile[t[2]], tileSize*t[3], 0, tileSize, tileSize, x, y, size, size);
-			if (t[0] == Math.round(offsetX) && t[1] == Math.round(offsetY)) {
-				currentTile = t[2];
+			ctx.drawImage(tile[t.Turf], tileSize*t.Dir, 0, tileSize, tileSize, x, y, size, size);
+			if (t.X == Math.round(offsetX) && t.Y == Math.round(offsetY)) {
+				currentTile = t.Turf;
 			}
 		}
 	}
@@ -225,47 +225,6 @@ function paint() {
 		}
 	}
 	ctx.globalAlpha = 1;
-
-	ctx.fillStyle = '#000';
-	/*map.forEach(function(t) {
-		if (t[2] == 1) {
-			var x = Math.round(t[0]*size - offsetX*size + centerX);
-			var y = Math.round(t[1]*size - offsetY*size + centerY);
-			var dx = centerX-x, dy = centerY-y;
-			if (x < centerX) {
-				ctx.beginPath();
-				ctx.moveTo(x+s2, y-s2);
-				ctx.lineTo(x+s2, y+s2);
-				ctx.lineTo(x+s2+(s2-dx)*1000, y+s2+(s2-dy)*1000);
-				ctx.lineTo(x+s2+(s2-dx)*1000, y-s2+(-s2-dy)*1000);
-				ctx.fill();
-			}
-			if (x > centerX) {
-				ctx.beginPath();
-				ctx.moveTo(x-s2, y-s2);
-				ctx.lineTo(x-s2, y+s2);
-				ctx.lineTo(x-s2+(-s2-dx)*1000, y+s2+(s2-dy)*1000);
-				ctx.lineTo(x-s2+(-s2-dx)*1000, y-s2+(-s2-dy)*1000);
-				ctx.fill();
-			}
-			if (y < centerY) {
-				ctx.beginPath();
-				ctx.moveTo(x-s2, y+s2);
-				ctx.lineTo(x+s2, y+s2);
-				ctx.lineTo(x+s2+(s2-dx)*1000, y+s2+(s2-dy)*1000);
-				ctx.lineTo(x-s2+(-s2-dx)*1000, y+s2+(s2-dy)*1000);
-				ctx.fill();
-			}
-			if (y > centerY) {
-				ctx.beginPath();
-				ctx.moveTo(x-s2, y-s2);
-				ctx.lineTo(x+s2, y-s2);
-				ctx.lineTo(x+s2+(s2-dx)*1000, y-s2+(-s2-dy)*1000);
-				ctx.lineTo(x-s2+(-s2-dx)*1000, y-s2+(-s2-dy)*1000);
-				ctx.fill();
-			}
-		}
-	});*/
 
 	if (currentAtmos) {
 		var x = Math.round(w - size * 1.1);
