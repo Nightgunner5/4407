@@ -1,4 +1,4 @@
-package main
+package shared
 
 import (
 	"fmt"
@@ -16,6 +16,8 @@ func init() {
 	http.HandleFunc("/icon/player.png", staticHandler("player.png"))
 
 	http.HandleFunc("/icon/chair.png", staticHandler("chair.png"))
+
+	http.HandleFunc("/", staticHandler("home.html"))
 }
 
 func staticHandler(fn string) func(http.ResponseWriter, *http.Request) {

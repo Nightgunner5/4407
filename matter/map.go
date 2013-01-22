@@ -16,7 +16,7 @@ func (m Map) Compile(padding int64) {
 	for i := range m {
 		var min, max Coord
 		for c := range m[i].Layout {
-			if m[i].Layout[c] == (LayoutTile{Turf: Space}) {
+			if m[i].Layout[c].Empty() {
 				delete(m[i].Layout, c)
 				continue
 			}
@@ -76,6 +76,10 @@ type LayoutTile struct {
 	Turf    LayoutTileTurf
 	Area    string
 	Objects []LayoutObject
+}
+
+func (t LayoutTile) Empty() bool {
+	return t.Turf == Space && t.Area == "" && len(t.Objects) == 0
 }
 
 type LayoutTileTurf uint32

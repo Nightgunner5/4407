@@ -44,7 +44,7 @@ func level(w http.ResponseWriter, i int) {
 	handle(err)
 	first := true
 	for c, t := range l.Layout {
-		if t != (matter.LayoutTile{Turf: matter.Space}) {
+		if !t.Empty() {
 			if first {
 				first = false
 			} else {

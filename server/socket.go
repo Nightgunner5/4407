@@ -3,6 +3,7 @@ package main
 import (
 	"code.google.com/p/go.net/websocket"
 	"github.com/Nightgunner5/4407/matter"
+	"github.com/Nightgunner5/4407/shared"
 	"log"
 	"net/http"
 )
@@ -36,7 +37,9 @@ func socket(conn *websocket.Conn) {
 
 	go sockWrite(conn, send)
 
-	send <- level(0)
+	State.RLock()
+	send <- shared.Level(State.M[p.Z].Layout)
+	State.RUnlock()
 
 	for {
 		var packet *Packet

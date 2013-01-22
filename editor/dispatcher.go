@@ -1,13 +1,18 @@
 package main
 
 import (
+	_ "github.com/Nightgunner5/4407/shared"
 	"net/http"
 	"strconv"
 	"strings"
 )
 
 func init() {
-	http.HandleFunc("/", dispatch)
+	http.HandleFunc("/levels", dispatch)
+	http.HandleFunc("/save", dispatch)
+	http.HandleFunc("/levels/", dispatch)
+	http.HandleFunc("/level/", dispatch)
+	http.HandleFunc("/set/", dispatch)
 }
 
 func dispatch(w http.ResponseWriter, r *http.Request) {
@@ -16,10 +21,6 @@ func dispatch(w http.ResponseWriter, r *http.Request) {
 	})
 
 	switch len(path) {
-	case 0:
-		home(w)
-		return
-
 	case 1:
 		switch path[0] {
 		case "levels":

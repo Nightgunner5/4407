@@ -1,10 +1,4 @@
-package main
-
-import (
-	"net/http"
-)
-
-var Home = []byte(`<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
 <title>4407</title>
@@ -250,15 +244,4 @@ function paint() {
 requestAnimationFrame(paint);
 </script>
 </body>
-</html>`)
-
-func init() {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/" {
-			http.NotFound(w, r)
-			return
-		}
-
-		w.Write(Home)
-	})
-}
+</html>
