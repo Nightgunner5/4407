@@ -70,7 +70,7 @@ func socket(conn *websocket.Conn) {
 			t := State.M[z].Layout[*packet.Position]
 			State.RUnlock()
 
-			if t == matter.Wall || t == matter.Window {
+			if t.Turf == matter.Wall || t.Turf == matter.Window {
 				break
 			}
 

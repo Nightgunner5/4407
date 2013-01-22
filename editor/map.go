@@ -19,7 +19,9 @@ func setTile(w http.ResponseWriter, z, x, y int64, t uint32) {
 	State.Lock()
 	defer State.Unlock()
 
-	State.Map[z].Layout[matter.Coord{x, y}] = matter.LayoutTile(t)
+	tile := State.Map[z].Layout[matter.Coord{x, y}]
+	tile.Turf = matter.LayoutTileTurf(t)
+	State.Map[z].Layout[matter.Coord{x, y}] = tile
 }
 
 func newLevel(w http.ResponseWriter) {
@@ -42,14 +44,14 @@ func level(w http.ResponseWriter, i int) {
 	handle(err)
 	first := true
 	for c, t := range l.Layout {
-		if t != 0 {
+		if t != (matter.LayoutTile{Turf: matter.Space}) {
 			if first {
 				first = false
 			} else {
 				_, err = fmt.Fprint(w, ",")
 				handle(err)
 			}
-			_, err = fmt.Fprintf(w, "[%d,%d,%d]", c.X, c.Y, t)
+			_, err = fmt.Fprintf(w, "[%d,%d,%d]", c.X, c.Y, t.Turf)
 			handle(err)
 		}
 	}

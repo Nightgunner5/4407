@@ -242,9 +242,9 @@ func (a Atmosphere) Tick() {
 		}
 		if a[i].Heater {
 			if a[i].Temp > RoomTemperature {
-				a[i].Temp -= 5
+				a[i].Temp -= 2.5
 			} else {
-				a[i].Temp += 5
+				a[i].Temp += 7.5
 			}
 		}
 		maybeShare(i, c.Add(-1, 0))

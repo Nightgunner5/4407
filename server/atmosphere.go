@@ -36,9 +36,9 @@ func atmosphere() {
 			t := State.M[p.Z].Atmos.Get(p.XY)
 			if t != nil {
 				t.Temp += 2.5
-				if t.Gas[matter.Oxygen] > 1 {
-					t.Gas[matter.Oxygen] -= 1
-					t.Gas[matter.CarbonDioxide] += 1
+				if t.Gas[matter.Oxygen] > 0.01 {
+					t.Gas[matter.Oxygen] -= 0.01
+					t.Gas[matter.CarbonDioxide] += 0.01
 				} else {
 					// TODO: damage
 				}

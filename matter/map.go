@@ -16,7 +16,7 @@ func (m Map) Compile(padding int64) {
 	for i := range m {
 		var min, max Coord
 		for c := range m[i].Layout {
-			if m[i].Layout[c] == Space {
+			if m[i].Layout[c] == (LayoutTile{Turf: Space}) {
 				delete(m[i].Layout, c)
 				continue
 			}
@@ -44,7 +44,7 @@ func (m Map) Compile(padding int64) {
 		m[i].Atmos = make(Atmosphere, 0, (max.X-min.X)*(max.Y-min.Y))
 		for y := min.Y; y < max.Y; y++ {
 			for x := min.X; x < max.X; x++ {
-				switch m[i].Layout[Coord{x, y}] {
+				switch m[i].Layout[Coord{x, y}].Turf {
 				case Space:
 					m[i].Atmos.Set(Coord{x, y}, TileSpace())
 				case Wall:
@@ -72,10 +72,14 @@ type Level struct {
 
 type Layout map[Coord]LayoutTile
 
-type LayoutTile uint32
+type LayoutTile struct {
+	Turf LayoutTileTurf
+}
+
+type LayoutTileTurf uint32
 
 const (
-	Space LayoutTile = iota
+	Space LayoutTileTurf = iota
 	Wall
 	Floor
 	Window
@@ -85,11 +89,11 @@ const (
 	TileCount
 )
 
-func (t LayoutTile) String() string {
+func (t LayoutTileTurf) String() string {
 	return t.GoString()
 }
 
-func (t LayoutTile) GoString() string {
+func (t LayoutTileTurf) GoString() string {
 	switch t {
 	case Space:
 		return "Space"
