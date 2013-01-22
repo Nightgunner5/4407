@@ -102,6 +102,12 @@ var tile = [new Image(), new Image(), new Image(), new Image(), new Image(), new
 for (var i = 0; i < tile.length; i++) {
 	tile[i].src = '/tile/' + i + '.png';
 }
+var objects = {
+	'/icon/chair.png': new Image(),
+};
+for (var o in objects) {
+	objects[o].src = o;
+}
 
 var requestAnimationFrame = window.requestAnimationFrame ||
 	window.mozRequestAnimationFrame ||
@@ -196,6 +202,11 @@ function paint() {
 		var y = Math.round(t.Y*size - s2 - offsetY*size + centerY);
 		if (x < w && x > -size && y < h && y > -size) {
 			ctx.drawImage(tile[t.Turf], tileSize*t.Dir, 0, tileSize, tileSize, x, y, size, size);
+			if (t.Obj) {
+				t.Obj.forEach(function(o) {
+					ctx.drawImage(objects[o.Icon], tileSize*o.Offset, 0, tileSize, tileSize, x, y, size, size);
+				});
+			}
 			if (t.X == Math.round(offsetX) && t.Y == Math.round(offsetY)) {
 				currentTile = t.Turf;
 			}

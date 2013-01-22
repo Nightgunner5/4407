@@ -31,13 +31,20 @@ button {
 var c = document.querySelector('canvas');
 var ctx = c.getContext('2d');
 
-var tileSize = 16;
+var tileSize = 32;
 var tileIcon = [new Image(), new Image(), new Image(), new Image(), new Image(), new Image()];
 for (var i = 0; i < tileIcon.length; ++i) {
 	tileIcon[i].src = '/tile/' + i + '.png';
 	tileIcon[i].addEventListener('load', redraw, false);
 }
 var chosenTile = 1;
+
+var objects = {
+	'/icon/chair.png': new Image(),
+};
+for (var o in objects) {
+	objects[o].src = o;
+}
 
 var ws;
 function connect() {
@@ -56,7 +63,22 @@ var currentZ = 0;
 
 function dispatch(packet) {
 	if (packet.MapZ) {
-		map[packet.MapZ.Z] = packet.MapZ.M;
+		var m = map[packet.MapZ.Z] = packet.MapZ.M;
+		var merge = function(t) {
+			if (t == 5) return 2;
+			return t;
+		};
+		m.forEach(function(t) {
+			var dir = 0;
+			m.forEach(function(tt) {
+				if (merge(tt.Turf) != merge(t.Turf)) return;
+				if (tt.X == t.X && tt.Y == t.Y-1) dir |= 1;
+				if (tt.X == t.X && tt.Y == t.Y+1) dir |= 2;
+				if (tt.X == t.X+1 && tt.Y == t.Y) dir |= 4;
+				if (tt.X == t.X-1 && tt.Y == t.Y) dir |= 8;
+			});
+			t.Dir = dir;
+		});
 		levels();
 		redraw();
 		return;
@@ -103,10 +125,34 @@ function levels() {
 		compileAndSave();
 	};
 	toolbar.appendChild(b);
+
+	for (var o in objects) {
+		var b = document.createElement('canvas');
+		b.width = objects[o].width;
+		b.height = objects[o].height;
+		toolbar.appendChild(b);
+		(function(o, b) {
+			objects[o].onload = function() {
+				b.width = objects[o].width;
+				b.height = objects[o].height;
+				b.getContext('2d').drawImage(objects[o], 0, 0);
+			};
+			b.getContext('2d').drawImage(objects[o], 0, 0);
+			b.onclick = function(e) {
+				chosenTile = {Icon: o, Offset: Math.floor(e.offsetX / 32)};
+			};
+		})(o, b);
+	}
+	var b = document.createElement('button');
+	b.innerHTML = '&times;';
+	b.onclick = function() {
+		chosenTile = null;
+	};
+	toolbar.appendChild(b);
 }
 
-function paintTile(x, y, t) {
-	ctx.drawImage(tileIcon[t], 0, 0, 32, 32, x * tileSize, y * tileSize, tileSize, tileSize);
+function paintTile(x, y, t, d) {
+	ctx.drawImage(t, 32*d, 0, 32, 32, x * tileSize, y * tileSize, tileSize, tileSize);
 }
 
 function redraw() {
@@ -134,7 +180,12 @@ function level(l) {
 	c.height = (maxY - minY + 1) * tileSize;
 	ctx = c.getContext('2d');
 	l.forEach(function(t) {
-		paintTile(t.X - minX, t.Y - minY, t.Turf);
+		paintTile(t.X - minX, t.Y - minY, tileIcon[t.Turf], t.Dir);
+		if (t.Obj) {
+			t.Obj.forEach(function(o) {
+				paintTile(t.X - minX, t.Y - minY, objects[o.Icon], o.Offset);
+			});
+		}
 	});
 
 	c.onclick = function(e) {
@@ -146,7 +197,13 @@ function level(l) {
 }
 
 function setTile(z, x, y) {
-	ws.send(JSON.stringify({Set: {Z: z, X: x, Y: y, Turf: chosenTile}}));
+	if (chosenTile === null) {
+		ws.send(JSON.stringify({Remove: {Z: z, X: x, Y: y}}));
+	} else if (!isNaN(chosenTile)) {
+		ws.send(JSON.stringify({Set: {Z: z, X: x, Y: y, Turf: chosenTile}}));
+	} else {
+		ws.send(JSON.stringify({Place: {Z: z, X: x, Y: y, Icon: chosenTile.Icon, Offset: chosenTile.Offset}}));
+	}
 }
 
 function newLevel() {

@@ -30,6 +30,16 @@ type Packet struct {
 		X, Y int64
 		Turf matter.LayoutTileTurf
 	}
+	Place *struct {
+		Z      int
+		X, Y   int64
+		Icon   string
+		Offset uint16
+	}
+	Remove *struct {
+		Z    int
+		X, Y int64
+	}
 	NewLevel *struct{}
 	Save     *struct{}
 }
@@ -84,7 +94,7 @@ func socket(conn *websocket.Conn) {
 		}
 	}
 	for {
-		var packet *Packet
+		var packet Packet
 		if err := websocket.JSON.Receive(conn, &packet); err != nil {
 			log.Printf("Read error: %s: %s", addr, err)
 			return
@@ -97,6 +107,52 @@ func socket(conn *websocket.Conn) {
 			State.Unlock()
 
 			packet := MapZPacket(packet.Set.Z)
+
+			Clients.RLock()
+			for c := range Clients.M {
+				select {
+				case c.Send <- packet:
+				default:
+				}
+			}
+			Clients.RUnlock()
+		}
+
+		if packet.Place != nil {
+			State.Lock()
+			tile := State.M[packet.Place.Z].Layout[matter.Coord{packet.Place.X, packet.Place.Y}]
+			tile.Objects = append(tile.Objects, matter.LayoutObject{
+				Icon:       packet.Place.Icon,
+				IconOffset: packet.Place.Offset,
+			})
+			State.M[packet.Place.Z].Layout[matter.Coord{packet.Place.X, packet.Place.Y}] = tile
+			State.Unlock()
+
+			packet := MapZPacket(packet.Place.Z)
+
+			Clients.RLock()
+			for c := range Clients.M {
+				select {
+				case c.Send <- packet:
+				default:
+				}
+			}
+			Clients.RUnlock()
+		}
+
+		if packet.Remove != nil {
+			State.Lock()
+			tile := State.M[packet.Remove.Z].Layout[matter.Coord{packet.Remove.X, packet.Remove.Y}]
+			if len(tile.Objects) != 0 {
+				tile.Objects = tile.Objects[:len(tile.Objects)-1]
+				if len(tile.Objects) == 0 {
+					tile.Objects = nil
+				}
+				State.M[packet.Remove.Z].Layout[matter.Coord{packet.Remove.X, packet.Remove.Y}] = tile
+			}
+			State.Unlock()
+
+			packet := MapZPacket(packet.Remove.Z)
 
 			Clients.RLock()
 			for c := range Clients.M {
